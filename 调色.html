@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  /* --- 极致迷你容器 --- */
+  .mini-palette {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px; /* 进一步减小内边距 */
+    width: 230px; /* 进一步缩窄宽度 */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 10px auto;
+    border: 1px solid rgba(0,0,0,0.06);
+    user-select: none;
+    align-items: center;
+  }
+
+  /* --- 迷你色彩圆球 --- */
+  .color-orb {
+    width: 90px; /* 缩小圆球 */
+    height: 90px;
+    border-radius: 50%;
+    background-color: #FF6B6B;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 3px solid #fff;
+    transition: background-color 0.1s, transform 0.2s;
+  }
+  .color-orb:active { transform: scale(0.9); }
+
+  /* --- 紧凑参数显示 --- */
+  .data-display {
+    text-align: center;
+    line-height: 1.2;
+  }
+  .hex-text {
+    font-size: 16px;
+    font-weight: 700;
+    color: #333;
+    font-family: monospace;
+  }
+  .hsl-text {
+    font-size: 10px;
+    color: #999;
+    margin-top: 2px;
+  }
+
+  /* --- 迷你滑块组 --- */
+  .sliders-compact {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* 减小间距 */
+  }
+
+  .slider-unit {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .unit-label {
+    font-size: 10px;
+    color: #666;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px; /* 变细 */
+    border-radius: 4px;
+    outline: none;
+    margin: 0;
+  }
+
+  /* 小巧滑块头 */
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    border: 0.5px solid rgba(0,0,0,0.1);
+  }
+
+  /* 滑道背景 */
+  #hueMini { background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
+  #satMini { background: linear-gradient(to right, #ddd, #f00); }
+  #lightMini { background: linear-gradient(to right, #000, #fff); }
+
+  /* --- 底部全能复制按钮 --- */
+  .copy-all-btn {
+    width: 100%;
+    padding: 10px 0;
+    border-radius: 8px;
+    border: none;
+    background: #333;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
+  }
+  
+  .copy-all-btn:active { transform: scale(0.96); }
+  .copy-all-btn.copied { background: #34C759; }
+
+</style>
+</head>
+<body>
+
+<div class="mini-palette">
+  <!-- 迷你圆球 -->
+  <div class="color-orb" id="miniOrb"></div>
+  
+  <!-- 数据展示 -->
+  <div class="data-display">
+    <div class="hex-text" id="hexMini">#FF6B6B</div>
+    <div class="hsl-text" id="hslStr">H:0 S:80 L:60</div>
+  </div>
+
+  <!-- 紧凑滑块 -->
+  <div class="sliders-compact">
+    <div class="slider-unit">
+      <div class="unit-label"><span>色相 Hue</span><span id="hVal">0</span></div>
+      <input type="range" min="0" max="360" value="0" id="hueMini">
+    </div>
+    <div class="slider-unit">
+      <div class="unit-label"><span>饱和 Saturation</span><span id="sVal">80</span></div>
+      <input type="range" min="0" max="100" value="80" id="satMini">
+    </div>
+    <div class="slider-unit">
+      <div class="unit-label"><span>亮度 Lightness</span><span id="lVal">60</span></div>
+      <input type="range" min="0" max="100" value="60" id="lightMini">
+    </div>
+  </div>
+
+  <button class="copy-all-btn" id="copyFullBtn" onclick="copyFullData()">
+    复制全部参数 (HEX + HSL)
+  </button>
+</div>
+
+<script>
+  const hM = document.getElementById('hueMini');
+  const sM = document.getElementById('satMini');
+  const lM = document.getElementById('lightMini');
+  const orb = document.getElementById('miniOrb');
+  const hexT = document.getElementById('hexMini');
+  const hslT = document.getElementById('hslStr');
+  const btnF = document.getElementById('copyFullBtn');
+  
+  // 数值显示
+  const hV = document.getElementById('hVal');
+  const sV = document.getElementById('sVal');
+  const lV = document.getElementById('lVal');
+
+  function hslToHex(h, s, l) {
+    l /= 100;
+    const a = s * Math.min(l, 1 - l) / 100;
+    const f = n => {
+      const k = (n + h / 30) % 12;
+      const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+      return Math.round(255 * color).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
+  }
+
+  function renderMini() {
+    const h = hM.value;
+    const s = sM.value;
+    const l = lM.value;
+    
+    const hex = hslToHex(h, s, l);
+    
+    // 更新视觉
+    orb.style.backgroundColor = hex;
+    orb.style.boxShadow = `0 5px 15px ${hex}55`; // 动态柔光
+    hexT.innerText = hex;
+    hslT.innerText = `H:${h}  S:${s}  L:${l}`;
+    
+    // 更新数值标签
+    hV.innerText = h;
+    sV.innerText = s;
+    lV.innerText = l;
+    
+    // 动态轨道颜色
+    sM.style.background = `linear-gradient(to right, hsl(${h}, 0%, ${l}%), hsl(${h}, 100%, ${l}%))`;
+    lM.style.background = `linear-gradient(to right, #000, hsl(${h}, ${s}%, 50%), #fff)`;
+  }
+
+  function copyFullData() {
+    // 构建完整数据字符串
+    const fullData = `HEX: ${hexT.innerText}\nHSL: ${hM.value}, ${sM.value}%, ${lM.value}%`;
+    
+    navigator.clipboard.writeText(fullData).then(() => {
+      const originalText = btnF.innerText;
+      btnF.innerText = "全部已复制!";
+      btnF.classList.add('copied');
+      
+      setTimeout(() => {
+        btnF.innerText = originalText;
+        btnF.classList.remove('copied');
+      }, 1500);
+    });
+  }
+
+  hM.addEventListener('input', renderMini);
+  sM.addEventListener('input', renderMini);
+  lM.addEventListener('input', renderMini);
+  
+  renderMini();
+</script>
+
+</body>
+</html>
