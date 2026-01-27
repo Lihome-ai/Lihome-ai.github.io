@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS定位抓取工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        /* 悬浮触发按钮 */
+        .tool-trigger {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: #2c3e50;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9998;
+            transition: all 0.3s ease;
+        }
+        .tool-trigger:hover {
+            background: #3498db;
+            transform: scale(1.1);
+        }
+        /* 悬浮取元素标志 */
+        .float-marker {
+            position: fixed;
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 69, 0, 0.8);
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.5);
+            pointer-events: none;
+            z-index: 9997;
+            display: none;
+            transition: transform 0.1s ease;
+        }
+        .float-marker.active {
+            display: block;
+            transform: scale(1.2);
+        }
+        /* 结果弹窗 */
+        .result-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 9999;
+            display: none;
+        }
+        .result-modal.show {
+            display: block;
+            animation: popIn 0.3s ease;
+        }
+        @keyframes popIn {
+            from { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-title svg {
+            fill: #3498db;
+        }
+        /* CSS定位信息模块（单独突出） */
+        .position-section {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .position-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #e65100;
+            margin-bottom: 10px;
+        }
+        .code-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .code-item {
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .code-key {
+            color: #e74c3c;
+            font-weight: 500;
+        }
+        .code-value {
+            color: #27ae60;
+        }
+        .copy-btn {
+            width: 100%;
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .copy-btn:hover {
+            background: #2980b9;
+        }
+        .copy-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 9999;
+        }
+        .copy-toast.show {
+            opacity: 1;
+            visibility: visible;
+            bottom: 40px;
+        }
+        /* 遮罩（激活取元素模式时显示） */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.1);
+            z-index: 9996;
+            display: none;
+            cursor: crosshair;
+        }
+        .overlay.active {
+            display: block;
+        }
+        /* SVG图标 */
+        svg {
+            width: 1em;
+            height: 1em;
+            vertical-align: middle;
+            fill: currentColor;
+        }
+    </style>
+    <!-- 内嵌SVG图标 -->
+    <svg style="display: none;">
+        <symbol id="icon-code" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7.5v9L9.5 19h5l2.5-3.5v-9L14.5 4zm-1.5 10.5h-2v-3h2v3zm0-4.5h-2V7.5h2V10z"/></symbol>
+        <symbol id="icon-copy" viewBox="0 0 24 24"><path d="M19 21H8V7h11v14zM14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></symbol>
+    </svg>
+</head>
+<body>
+    <!-- 工具触发按钮 -->
+    <div class="tool-trigger" id="toolTrigger">
+        <svg><use xlink:href="#icon-code"></use></svg>
+    </div>
+
+    <!-- 悬浮取元素标志 -->
+    <div class="float-marker" id="floatMarker"></div>
+
+    <!-- 遮罩（取元素模式） -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- 结果弹窗 -->
+    <div class="result-modal" id="resultModal">
+        <div class="modal-title">
+            <svg><use xlink:href="#icon-code"></use></svg>
+            元素CSS定位信息
+        </div>
+
+        <!-- 单独突出的CSS定位模块 -->
+        <div class="position-section" id="positionSection">
+            <div class="position-title">核心定位属性</div>
+            <div class="code-container" id="positionContainer">
+                <!-- 定位信息将在这里显示 -->
+            </div>
+        </div>
+
+        <!-- 其他CSS属性 -->
+        <div class="code-container" id="otherContainer">
+            <!-- 其他属性将在这里显示 -->
+        </div>
+
+        <button class="copy-btn" id="copyBtn">
+            <svg><use xlink:href="#icon-copy"></use></svg>
+            复制全部定位信息
+        </button>
+    </div>
+
+    <!-- 复制成功弹窗 -->
+    <div class="copy-toast" id="copyToast">复制成功！</div>
+
+    <script>
+        // DOM元素
+        const toolTrigger = document.getElementById('toolTrigger');
+        const floatMarker = document.getElementById('floatMarker');
+        const overlay = document.getElementById('overlay');
+        const resultModal = document.getElementById('resultModal');
+        const positionContainer = document.getElementById('positionContainer');
+        const otherContainer = document.getElementById('otherContainer');
+        const copyBtn = document.getElementById('copyBtn');
+        const copyToast = document.getElementById('copyToast');
+
+        // 状态变量
+        let isSelecting = false;
+        let currentElementInfo = {}; // 存储当前元素信息
+
+        // 触发工具：开启/关闭取元素模式
+        toolTrigger.addEventListener('click', () => {
+            isSelecting = !isSelecting;
+            overlay.classList.toggle('active', isSelecting);
+            floatMarker.classList.toggle('active', isSelecting);
+            
+            if (isSelecting) {
+                toolTrigger.style.background = '#e74c3c';
+                document.body.style.cursor = 'crosshair';
+            } else {
+                toolTrigger.style.background = '#2c3e50';
+                document.body.style.cursor = 'default';
+            }
+        });
+
+        // 鼠标移动：悬浮标志跟随
+        overlay.addEventListener('mousemove', (e) => {
+            if (!isSelecting) return;
+            // 让标志在鼠标下方偏移，不遮挡视线
+            const x = e.clientX + 15;
+            const y = e.clientY + 15;
+            floatMarker.style.left = `${x}px`;
+            floatMarker.style.top = `${y}px`;
+        });
+
+        // 点击页面：获取元素CSS定位信息
+        overlay.addEventListener('click', (e) => {
+            if (!isSelecting) return;
+            e.stopPropagation();
+
+            // 获取点击位置的元素
+            const targetElement = document.elementFromPoint(e.clientX, e.clientY);
+            if (!targetElement) return;
+
+            // 获取元素计算后的CSS样式
+            const computedStyle = window.getComputedStyle(targetElement);
+
+            // --- 核心CSS定位属性（单独抓取）---
+            const positionInfo = {
+                'position（定位方式）': computedStyle.position,
+                'top（上偏移）': computedStyle.top,
+                'right（右偏移）': computedStyle.right,
+                'bottom（下偏移）': computedStyle.bottom,
+                'left（左偏移）': computedStyle.left,
+                'z-index（层级）': computedStyle.zIndex,
+                'display（显示方式）': computedStyle.display,
+                'float（浮动）': computedStyle.float,
+                'clear（清除浮动）': computedStyle.clear,
+                'transform（变形）': computedStyle.transform,
+                'margin（外边距）': `上: ${computedStyle.marginTop}, 右: ${computedStyle.marginRight}, 下: ${computedStyle.marginBottom}, 左: ${computedStyle.marginLeft}`
+            };
+
+            // --- 其他CSS属性 ---
+            const otherInfo = {
+                '元素标签': targetElement.tagName.toLowerCase(),
+                'ID': targetElement.id || '无',
+                '类名': targetElement.className || '无',
+                '宽度': computedStyle.width,
+                '高度': computedStyle.height,
+                '背景颜色': rgbToHex(computedStyle.backgroundColor),
+                '字体颜色': rgbToHex(computedStyle.color),
+                '内边距': `上: ${computedStyle.paddingTop}, 右: ${computedStyle.paddingRight}, 下: ${computedStyle.paddingBottom}, 左: ${computedStyle.paddingLeft}`,
+                '边框': computedStyle.border,
+                '圆角': computedStyle.borderRadius
+            };
+
+            // 存储信息
+            currentElementInfo = { ...positionInfo, ...otherInfo };
+
+            // 渲染定位信息和其他信息
+            renderInfo(positionInfo, positionContainer);
+            renderInfo(otherInfo, otherContainer);
+
+            // 显示弹窗
+            resultModal.classList.add('show');
+            // 关闭取元素模式
+            isSelecting = false;
+            overlay.classList.remove('active');
+            floatMarker.classList.remove('active');
+            toolTrigger.style.background = '#2c3e50';
+            document.body.style.cursor = 'default';
+        });
+
+        // 渲染信息到容器
+        function renderInfo(info, container) {
+            let html = '';
+            for (const [key, value] of Object.entries(info)) {
+                html += `<div class="code-item"><span class="code-key">${key}:</span> <span class="code-value">${value}</span></div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        // RGB转HEX工具函数
+        function rgbToHex(rgb) {
+            if (rgb === 'transparent' || !rgb.startsWith('rgb')) return rgb;
+            const match = rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            if (!match) return rgb;
+            const r = parseInt(match[1]), g = parseInt(match[2]), b = parseInt(match[3]);
+            return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+        }
+
+        // 复制定位信息
+        copyBtn.addEventListener('click', () => {
+            let textToCopy = '【核心定位属性】\n';
+            // 先复制定位信息
+            for (const [key, value] of Object.entries(positionInfo)) {
+                textToCopy += `${key}: ${value}\n`;
+            }
+            textToCopy += '\n【其他属性】\n';
+            // 再复制其他信息
+            for (const [key, value] of Object.entries(otherInfo)) {
+                textToCopy += `${key}: ${value}\n`;
+            }
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                copyToast.classList.add('show');
+                setTimeout(() => copyToast.classList.remove('show'), 2000);
+            });
+        });
+
+        // 关闭弹窗
+        resultModal.addEventListener('click', (e) => {
+            if (e.target === resultModal) {
+                resultModal.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
