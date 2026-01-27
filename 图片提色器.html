@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片提色器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background-color: #fafafa;
+            padding: 20px;
+            color: #333;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 30px auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        /* INS风格上传区域 */
+        .upload-area {
+            border: 2px dashed #e0e0e0;
+            border-radius: 16px;
+            padding: 50px 20px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            background-color: #f9f9f9;
+        }
+        .upload-area:hover {
+            border-color: #3498db;
+            background: #f5f9ff;
+            transform: translateY(-2px);
+        }
+        .upload-icon {
+            font-size: 56px;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+        .upload-area p {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        .upload-area p small {
+            color: #999;
+            font-size: 14px;
+        }
+        /* 预览区域优化 */
+        .preview-container {
+            position: relative;
+            margin-bottom: 30px;
+            display: none;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        #imagePreview {
+            max-width: 100%;
+            max-height: 450px;
+            display: block;
+            margin: 0 auto;
+        }
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            border: none;
+            transition: background 0.3s;
+        }
+        .close-btn:hover {
+            background: rgba(0,0,0,0.8);
+        }
+        /* 颜色结果区域INS风格 */
+        .color-result {
+            display: none;
+            background: #f9f9f9;
+            border-radius: 16px;
+            padding: 25px;
+            margin-top: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .color-display {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            margin-right: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .color-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .color-codes {
+            flex: 1;
+        }
+        .color-code {
+            margin-bottom: 8px;
+            font-family: monospace;
+            font-size: 15px;
+            color: #444;
+        }
+        /* INS风格按钮 */
+        .copy-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+        }
+        .copy-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(52, 152, 219, 0.3);
+        }
+        /* 说明文字优化 */
+        .instructions {
+            margin-top: 25px;
+            font-size: 15px;
+            color: #888;
+            text-align: center;
+        }
+        /* 版权信息样式 */
+        .copyright {
+            text-align: center;
+            margin-top: 40px;
+            color: #999;
+            font-size: 14px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+        }
+        /* 复制成功弹窗 */
+        .copy-toast {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 15px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 9999;
+        }
+        .copy-toast.show {
+            opacity: 1;
+            visibility: visible;
+            top: 40px;
+        }
+        /* SVG图标基础样式 */
+        svg {
+            width: 1em;
+            height: 1em;
+            vertical-align: middle;
+            fill: currentColor;
+            overflow: hidden;
+        }
+    </style>
+    <!-- 内嵌SVG图标库（矢量图标，支持颜色/大小控制） -->
+    <svg style="display: none;">
+        <!-- 上传图标 -->
+        <symbol id="icon-upload" viewBox="0 0 24 24">
+            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+        </symbol>
+        <!-- 关闭图标 -->
+        <symbol id="icon-close" viewBox="0 0 24 24">
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
+        </symbol>
+        <!-- 复制图标 -->
+        <symbol id="icon-copy" viewBox="0 0 24 24">
+            <path d="M19 21H8V7h11v14zM14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/>
+        </symbol>
+    </svg>
+</head>
+<body>
+    <div class="container">
+        <h1>图片提色器</h1>
+        
+        <!-- 上传区域（使用SVG上传图标） -->
+        <div class="upload-area" id="uploadArea">
+            <svg class="upload-icon">
+                <use xlink:href="#icon-upload"></use>
+            </svg>
+            <p>点击或拖拽图片到此处上传</p>
+            <p><small>支持 JPG, PNG 格式</small></p>
+        </div>
+        
+        <!-- 预览区域（使用SVG关闭图标） -->
+        <div class="preview-container" id="previewContainer">
+            <button class="close-btn" id="closeBtn">
+                <svg>
+                    <use xlink:href="#icon-close"></use>
+                </svg>
+            </button>
+            <img id="imagePreview" alt="预览图">
+        </div>
+        
+        <!-- 颜色结果区域（按钮添加SVG复制图标） -->
+        <div class="color-result" id="colorResult">
+            <div class="color-info">
+                <div class="color-display" id="colorDisplay"></div>
+                <div class="color-codes">
+                    <div class="color-code">RGB: <span id="rgbCode">0, 0, 0</span></div>
+                    <div class="color-code">HEX: <span id="hexCode">#000000</span></div>
+                    <div class="color-code">HSL: <span id="hslCode">0°, 0%, 0%</span></div>
+                </div>
+            </div>
+            <button class="copy-btn" id="copyBtn">
+                <svg style="margin-right: 8px;">
+                    <use xlink:href="#icon-copy"></use>
+                </svg>
+                复制颜色代码
+            </button>
+        </div>
+        
+        <div class="instructions">
+            <p>点击图片任意位置获取该位置的颜色</p>
+        </div>
+        
+        <!-- 版权信息 -->
+        <div class="copyright">
+            © 2026 作者：漓（Li） 版权所有
+        </div>
+    </div>
+    
+    <!-- 复制成功弹窗 -->
+    <div class="copy-toast" id="copyToast">已复制成功</div>
+
+    <script>
+        // 获取DOM元素
+        const uploadArea = document.getElementById('uploadArea');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const closeBtn = document.getElementById('closeBtn');
+        const colorResult = document.getElementById('colorResult');
+        const colorDisplay = document.getElementById('colorDisplay');
+        const rgbCode = document.getElementById('rgbCode');
+        const hexCode = document.getElementById('hexCode');
+        const hslCode = document.getElementById('hslCode');
+        const copyBtn = document.getElementById('copyBtn');
+        const copyToast = document.getElementById('copyToast');
+        
+        // 创建隐藏的文件输入元素
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/jpeg, image/png';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+        
+        // 点击上传区域触发文件选择
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // 拖放功能
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#3498db';
+            uploadArea.style.backgroundColor = '#f5f9ff';
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#e0e0e0';
+            uploadArea.style.backgroundColor = '#f9f9f9';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#e0e0e0';
+            uploadArea.style.backgroundColor = '#f9f9f9';
+            
+            if (e.dataTransfer.files.length) {
+                handleImageUpload(e.dataTransfer.files[0]);
+            }
+        });
+        
+        // 文件选择处理
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                handleImageUpload(fileInput.files[0]);
+            }
+        });
+        
+        // 关闭预览
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetTool();
+        });
+        
+        // 图片点击取色
+        imagePreview.addEventListener('click', (e) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = imagePreview.naturalWidth;
+            canvas.height = imagePreview.naturalHeight;
+            ctx.drawImage(imagePreview, 0, 0, canvas.width, canvas.height);
+            
+            // 获取点击位置的颜色
+            const rect = imagePreview.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // 计算图片上的实际坐标
+            const imgX = Math.round((x / rect.width) * canvas.width);
+            const imgY = Math.round((y / rect.height) * canvas.height);
+            
+            const pixel = ctx.getImageData(imgX, imgY, 1, 1).data;
+            const [r, g, b] = pixel;
+            
+            // 显示颜色
+            displayColor(r, g, b);
+        });
+        
+        // 复制颜色代码（优化为弹窗提示）
+        copyBtn.addEventListener('click', () => {
+            const textToCopy = `RGB: ${rgbCode.textContent}\nHEX: ${hexCode.textContent}\nHSL: ${hslCode.textContent}`;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                // 显示复制成功弹窗
+                copyToast.classList.add('show');
+                // 3秒后隐藏弹窗
+                setTimeout(() => {
+                    copyToast.classList.remove('show');
+                }, 3000);
+            }).catch(() => {
+                copyToast.textContent = '复制失败，请重试';
+                copyToast.classList.add('show');
+                setTimeout(() => {
+                    copyToast.classList.remove('show');
+                }, 3000);
+            });
+        });
+        
+        // 处理图片上传
+        function handleImageUpload(file) {
+            if (!file.type.match('image.*')) {
+                alert('请上传图片文件');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                previewContainer.style.display = 'block';
+                uploadArea.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // 显示颜色信息
+        function displayColor(r, g, b) {
+            // 转换为HEX
+            const hex = rgbToHex(r, g, b);
+            
+            // 转换为HSL
+            const hsl = rgbToHsl(r, g, b);
+            const hslFormatted = `${Math.round(hsl[0])}°, ${Math.round(hsl[1] * 100)}%, ${Math.round(hsl[2] * 100)}%`;
+            
+            // 更新UI
+            colorDisplay.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            rgbCode.textContent = `${r}, ${g}, ${b}`;
+            hexCode.textContent = hex;
+            hslCode.textContent = hslFormatted;
+            
+            colorResult.style.display = 'block';
+        }
+        
+        // 重置工具状态
+        function resetTool() {
+            imagePreview.src = '';
+            previewContainer.style.display = 'none';
+            colorResult.style.display = 'none';
+            uploadArea.style.display = 'block';
+            fileInput.value = '';
+        }
+        
+        // RGB转HEX
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => {
+                const hex = x.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
+        }
+        
+        // RGB转HSL
+        function rgbToHsl(r, g, b) {
+            r /= 255, g /= 255, b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+            
+            if (max === min) {
+                h = s = 0; // 无色彩
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            
+            return [h * 360, s, l];
+        }
+    </script>
+</body>
+</html>
