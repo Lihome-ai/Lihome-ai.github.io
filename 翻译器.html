@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 手机端核心适配标签 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="white">
+    <title>Li Trans</title>
+    <style>
+/* --- 莫兰迪·Ins风翻译工作台 - 手机端适配 --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+:root {
+    --mo-bg: #FDFCFB; /* 暖白背景 */
+    --mo-primary: #7A8B99; /* 莫兰迪蓝灰 */
+    --mo-accent: #B5A89F; /* 莫兰迪暖灰 */
+    --mo-text: #4A4A4A; /* 柔和深灰 */
+    --mo-light: #F2F0EB; /* 米灰底色 */
+    --mo-shadow: rgba(122, 139, 153, 0.15);
+}
+/* 适配手机刘海/底部安全区，避免遮挡 */
+body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background-color: #f8f7f5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent; /* 移除手机点击高亮 */
+}
+
+.morandi-trans-card {
+    width: 100%; /* 占满手机屏幕宽度 */
+    margin: 10px auto; /* 手机端轻微上下边距 */
+    background: var(--mo-bg);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px var(--mo-shadow);
+    padding: 24px;
+    position: relative;
+    border: 1px solid rgba(0,0,0,0.03);
+}
+
+/* 顶部：标题与控制 */
+.mo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.mo-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--mo-primary);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+/* 语言切换胶囊 - 加大手机触控区域 */
+.mo-lang-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--mo-light);
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--mo-text);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.mo-lang-pill:hover {
+    background: #E8E6E1;
+    transform: translateY(-1px);
+}
+
+/* 输入区域容器 */
+.mo-input-wrapper {
+    position: relative;
+    margin-bottom: 15px;
+    background: var(--mo-light);
+    border-radius: 16px;
+    transition: all 0.3s;
+    border: 1px solid transparent;
+}
+.mo-input-wrapper:focus-within {
+    background: #FFFFFF;
+    border-color: var(--mo-accent);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* 文本域 - 手机端加高，字体稍大更易读 */
+.mo-textarea {
+    width: 100%;
+    height: 120px; /* 手机端加高输入框 */
+    border: none;
+    background: transparent;
+    padding: 16px;
+    padding-bottom: 45px; /* 为底部按钮留足空间 */
+    font-size: 16px; /* 手机端字体放大 */
+    color: var(--mo-text);
+    resize: none;
+    outline: none;
+    line-height: 1.6; /* 加大行高，阅读更舒适 */
+}
+.mo-textarea::placeholder {
+    color: #B0B0B0;
+}
+
+/* 输入框内嵌工具栏 (右下角) - 加大触控 */
+.mo-tools-inner {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    gap: 8px;
+}
+.mo-mini-btn {
+    padding: 7px 12px; /* 加大手机点击区域 */
+    background: rgba(255,255,255,0.6);
+    border-radius: 8px;
+    font-size: 12px; /* 微调字体 */
+    color: var(--mo-accent);
+    cursor: pointer;
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.mo-mini-btn:hover {
+    background: #FFFFFF;
+    color: var(--mo-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* 结果区域 */
+.mo-result-box {
+    margin-top: 15px;
+    padding: 0 10px;
+    display: none; /* 初始隐藏 */
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.mo-label {
+    font-size: 10px;
+    color: var(--mo-accent);
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    padding-left: 6px;
+}
+.mo-result-card {
+    background: #FFFFFF;
+    border: 1px solid var(--mo-light);
+    border-left: 3px solid var(--mo-primary);
+    border-radius: 12px;
+    padding: 18px; /* 加大内边距，手机端更舒适 */
+    position: relative;
+}
+.mo-result-text {
+    font-size: 16px; /* 手机端放大结果字体 */
+    color: var(--mo-text);
+    line-height: 1.6;
+    margin-bottom: 8px;
+    word-break: break-all;
+    min-height: 40px; /* 防止结果为空高度塌陷 */
+}
+/* 复制按钮 - 加大图标，优化触控 */
+.mo-copy-tag {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    cursor: pointer;
+    color: var(--mo-accent);
+    transition: color 0.2s;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.mo-copy-tag:hover { color: var(--mo-primary); }
+
+/* 主按钮 - 加高触控区域，手机点击更友好 */
+.mo-main-btn {
+    width: 100%;
+    margin-top: 15px;
+    padding: 16px 14px; /* 上下加高，提升触控 */
+    background: var(--mo-primary);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-size: 15px; /* 放大按钮字体 */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+}
+.mo-main-btn:hover {
+    background: #6C7D8B;
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(122, 139, 153, 0.25);
+}
+.mo-main-btn:active { transform: scale(0.98); }
+
+/* SVG Icon - 适配手机端显示 */
+.icon { width: 15px; height: 15px; fill: currentColor; }
+.mo-copy-tag .icon { width: 18px; height: 18px; }
+    </style>
+</head>
+<body>
+    <div class="morandi-trans-card">
+        <div class="mo-header">
+            <div class="mo-title">Zero Trans</div>
+            <div class="mo-lang-pill" onclick="switchLang()">
+              <span id="moSrc">ZH</span>
+              <svg class="icon" viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"></path></svg>
+              <span id="moDst">JP</span>
+            </div>
+        </div>
+
+        <div class="mo-input-wrapper">
+            <textarea id="moInput" class="mo-textarea" placeholder="在此输入需要翻译的内容..."></textarea>
+            <div class="mo-tools-inner">
+              <button class="mo-mini-btn" onclick="pasteText()" title="从剪贴板粘贴">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"></path></svg>
+              粘贴
+              </button>
+              <button class="mo-mini-btn" onclick="clearInput()" title="清空内容">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"></path></svg>
+              清空
+              </button>
+            </div>
+        </div>
+
+        <button id="moTransBtn" class="mo-main-btn" onclick="startTrans()">
+            翻译 / TRANSLATE
+        </button>
+
+        <div id="moResultBox" class="mo-result-box">
+            <div class="mo-label">RESULT</div>
+            <div class="mo-result-card">
+              <div id="moOutput" class="mo-result-text"></div>
+              <div class="mo-copy-tag" onclick="copyMoResult()">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path></svg>
+              </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+let srcLang = 'zh';
+let dstLang = 'ja';
+
+function switchLang() {
+    [srcLang, dstLang] = [dstLang, srcLang];
+    document.getElementById('moSrc').textContent = srcLang.toUpperCase();
+    document.getElementById('moDst').textContent = dstLang.toUpperCase();
+}
+
+function clearInput() {
+    document.getElementById('moInput').value = '';
+    document.getElementById('moInput').focus();
+    document.getElementById('moResultBox').style.display = 'none';
+}
+
+async function pasteText() {
+    try {
+        const text = await navigator.clipboard.readText();
+        document.getElementById('moInput').value = text;
+    } catch (err) {
+        alert('无法访问剪贴板，请手动粘贴');
+    }
+}
+
+async function startTrans() {
+    const input = document.getElementById('moInput').value.trim();
+    if (!input) return;
+
+    const btn = document.getElementById('moTransBtn');
+    const originalText = btn.innerText;
+    
+    btn.innerText = 'WAITING...';
+    btn.style.opacity = '0.7';
+    btn.disabled = true; // 手机端增加禁用，防止重复点击
+    
+    try {
+        const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(input)}&langpair=${srcLang}|${dstLang}`);
+        const data = await response.json();
+
+        if (data.responseStatus === 200) {
+          // 处理无翻译结果的情况
+          document.getElementById('moOutput').innerText = data.responseData.translatedText || '暂无翻译结果';
+          document.getElementById('moResultBox').style.display = 'block';
+        } else {
+          alert('翻译失败，请稍后重试');
+        }
+    } catch (e) {
+        alert('网络错误，请检查网络连接');
+    } finally {
+        btn.innerText = originalText;
+        btn.style.opacity = '1';
+        btn.disabled = false; // 恢复按钮可用
+    }
+}
+
+function copyMoResult() {
+    const text = document.getElementById('moOutput').innerText;
+    // 兼容手机端老旧浏览器，不支持navigator.clipboard
+    if (!navigator.clipboard) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showCopySuccess();
+        return;
+    }
+    navigator.clipboard.writeText(text).then(showCopySuccess).catch(() => {
+        alert('复制失败，请手动复制');
+    });
+}
+
+// 复制成功提示，统一逻辑
+function showCopySuccess() {
+    const btn = document.getElementById('moTransBtn');
+    const originalText = btn.innerText;
+    const originalBg = btn.style.background;
+    btn.innerText = '已复制 / COPIED';
+    btn.style.background = '#8F9E8B'; // 莫兰迪绿
+    setTimeout(() => {
+      btn.innerText = originalText;
+      btn.style.background = originalBg;
+    }, 1500);
+}
+
+// 手机端点击空白处收起键盘，提升体验
+document.addEventListener('click', (e) => {
+    const textarea = document.getElementById('moInput');
+    if (e.target !== textarea && !textarea.contains(e.target)) {
+        textarea.blur();
+    }
+});
+    </script>
+</body>
+</html>
